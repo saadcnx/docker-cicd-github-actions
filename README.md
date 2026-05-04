@@ -245,6 +245,11 @@ The integration script validates:
 - Verify the base image tag is valid
 
 ---
+## SCREENSHOTS
+<img width="1575" height="731" alt="github_prof" src="https://github.com/user-attachments/assets/bdf59d8a-43a8-40e4-940a-912843d95a45" />
+<img width="1585" height="667" alt="docker_hub" src="https://github.com/user-attachments/assets/d533c449-3f32-4f5d-b0b6-4cd8dda8c2e7" />
+
+---
 
 ## 🔒 Security Practices
 
