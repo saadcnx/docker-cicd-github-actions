@@ -1,0 +1,15 @@
+{
+  "name": "docker-cicd-github-actions",
+  "version": "1.0.0",
+  "description": "A simple Node.js app for Docker CI/CD demonstration",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Running tests...\" && node test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "author": "Saad khan",
+  "license": "MIT"
+}
