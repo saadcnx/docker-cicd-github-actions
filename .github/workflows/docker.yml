@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 env:
-  DOCKER_IMAGE_NAME: docker-cicd-demo
+  DOCKER_IMAGE_NAME: docker-cicd-github-action
   DOCKER_REGISTRY: docker.io
 
 jobs:
@@ -50,9 +50,9 @@ jobs:
 
     - name: Test Docker image
       run: |
-        docker run -d -p 3000:3000 --name test-container ${{ env.DOCKER_IMAGE_NAME }}:test
+        docker run -d -p 3009:3000 --name test-container ${{ env.DOCKER_IMAGE_NAME }}:test
         sleep 10
-        curl -f http://localhost:3000/health || exit 1
+        curl -f http://localhost:3009/health || exit 1
         docker stop test-container
         docker rm test-container
 
@@ -63,7 +63,7 @@ jobs:
         echo '  app:' >> docker-compose.test.yml
         echo '    image: ${{ env.DOCKER_IMAGE_NAME }}:test' >> docker-compose.test.yml
         echo '    ports:' >> docker-compose.test.yml
-        echo '      - "3000:3000"' >> docker-compose.test.yml
+        echo '      - "3009:3000"' >> docker-compose.test.yml
         echo '    healthcheck:' >> docker-compose.test.yml
         echo '      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]' >> docker-compose.test.yml
         echo '      interval: 10s' >> docker-compose.test.yml
@@ -85,13 +85,13 @@ jobs:
 
     - name: Test Docker Compose services
       run: |
-        curl -f http://localhost:3000/health || exit 1
+        curl -f http://localhost:3009/health || exit 1
         echo "✅ Direct app access successful"
         if [ -f nginx.conf ]; then
           curl -f http://localhost:8080/health || echo "⚠️ Nginx not configured"
           echo "✅ Nginx proxy access attempted"
         fi
-        response=$(curl -s http://localhost:3000/)
+        response=$(curl -s http://localhost:3009/)
         echo "App response: $response"
         if echo "$response" | grep -q "healthy\|status"; then
           echo "✅ App functionality test passed"
