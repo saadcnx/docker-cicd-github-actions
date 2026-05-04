@@ -6,7 +6,7 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Hello from Docker CI/CD Demo!',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.1'
   });
 });
 
