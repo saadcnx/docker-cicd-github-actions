@@ -9,7 +9,7 @@ on:
 
 # Environment variables available to all jobs
 env:
-  DOCKER_IMAGE_NAME: docker-cicd-github-action
+  DOCKER_IMAGE_NAME: docker-cicd-github-action:test
   DOCKER_REGISTRY: docker.io
 
 jobs:
