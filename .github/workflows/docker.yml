@@ -32,7 +32,7 @@ jobs:
         npm start &
         APP_PID=$!
         sleep 5
-        npm test || true  # Don't fail if no tests
+        npm test || true
         kill $APP_PID || true
     
     - name: Set up Docker Buildx
@@ -43,7 +43,7 @@ jobs:
       with:
         context: .
         push: false
-        load: true  # IMPORTANT: Load image to local Docker daemon
+        load: true
         tags: ${{ env.DOCKER_IMAGE_NAME }}:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -58,7 +58,6 @@ jobs:
     
     - name: Create test environment with Docker Compose
       run: |
-        # Create docker-compose.yml for testing if it doesn't exist
         cat > docker-compose.test.yml << 'EOL'
 version: '3.8'
 services:
@@ -88,21 +87,17 @@ EOL
     
     - name: Test Docker Compose services
       run: |
-        # Test direct app access
         curl -f http://localhost:3000/health || exit 1
         echo "✅ Direct app access successful"
         
-        # Test nginx proxy access if nginx.conf exists
         if [ -f nginx.conf ]; then
           curl -f http://localhost:8080/health || echo "⚠️ Nginx not configured"
           echo "✅ Nginx proxy access attempted"
         fi
         
-        # Test app functionality
         response=$(curl -s http://localhost:3000/)
         echo "App response: $response"
         
-        # Verify response (adjust based on your app)
         if echo "$response" | grep -q "healthy\|status"; then
           echo "✅ App functionality test passed"
         else
@@ -148,8 +143,8 @@ EOL
         images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}
         tags: |
           type=ref,event=branch
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
+          type=sha,prefix=${{ github.ref_name }}-
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
     
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -163,15 +158,10 @@ EOL
     
     - name: Verify pushed image
       run: |
-        # Pull the image we just pushed
         docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
-        
-        # Quick test of the pulled image
         docker run -d -p 3001:3000 --name verify-container ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
         sleep 10
         curl -f http://localhost:3001/health || exit 1
         echo "✅ Pushed image verification successful"
-        
-        # Cleanup
         docker stop verify-container
         docker rm verify-container
