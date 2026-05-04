@@ -13,20 +13,20 @@ env:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm install
-    
+
     - name: Run unit tests
       run: |
         npm start &
@@ -34,10 +34,10 @@ jobs:
         sleep 5
         npm test || true
         kill $APP_PID || true
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
+
     - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
@@ -47,7 +47,7 @@ jobs:
         tags: ${{ env.DOCKER_IMAGE_NAME }}:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
-    
+
     - name: Test Docker image
       run: |
         docker run -d -p 3000:3000 --name test-container ${{ env.DOCKER_IMAGE_NAME }}:test
@@ -55,55 +55,50 @@ jobs:
         curl -f http://localhost:3000/health || exit 1
         docker stop test-container
         docker rm test-container
-    
+
     - name: Create test environment with Docker Compose
       run: |
-        cat > docker-compose.test.yml << 'EOL'
-version: '3.8'
-services:
-  app:
-    image: ${{ env.DOCKER_IMAGE_NAME }}:test
-    ports:
-      - "3000:3000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "8080:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - app
-EOL
-    
+        echo 'version: "3.8"' > docker-compose.test.yml
+        echo 'services:' >> docker-compose.test.yml
+        echo '  app:' >> docker-compose.test.yml
+        echo '    image: ${{ env.DOCKER_IMAGE_NAME }}:test' >> docker-compose.test.yml
+        echo '    ports:' >> docker-compose.test.yml
+        echo '      - "3000:3000"' >> docker-compose.test.yml
+        echo '    healthcheck:' >> docker-compose.test.yml
+        echo '      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]' >> docker-compose.test.yml
+        echo '      interval: 10s' >> docker-compose.test.yml
+        echo '      timeout: 5s' >> docker-compose.test.yml
+        echo '      retries: 5' >> docker-compose.test.yml
+        echo '  nginx:' >> docker-compose.test.yml
+        echo '    image: nginx:alpine' >> docker-compose.test.yml
+        echo '    ports:' >> docker-compose.test.yml
+        echo '      - "8080:80"' >> docker-compose.test.yml
+        echo '    volumes:' >> docker-compose.test.yml
+        echo '      - ./nginx.conf:/etc/nginx/conf.d/default.conf' >> docker-compose.test.yml
+        echo '    depends_on:' >> docker-compose.test.yml
+        echo '      - app' >> docker-compose.test.yml
+
     - name: Start services with Docker Compose
       run: |
         docker compose -f docker-compose.test.yml up -d
         sleep 15
-    
+
     - name: Test Docker Compose services
       run: |
         curl -f http://localhost:3000/health || exit 1
         echo "✅ Direct app access successful"
-        
         if [ -f nginx.conf ]; then
           curl -f http://localhost:8080/health || echo "⚠️ Nginx not configured"
           echo "✅ Nginx proxy access attempted"
         fi
-        
         response=$(curl -s http://localhost:3000/)
         echo "App response: $response"
-        
         if echo "$response" | grep -q "healthy\|status"; then
           echo "✅ App functionality test passed"
         else
           echo "⚠️ App response: $response"
         fi
-    
+
     - name: Check service logs
       if: always()
       run: |
@@ -111,7 +106,7 @@ EOL
         docker compose -f docker-compose.test.yml logs app || true
         echo "=== Nginx Service Logs ==="
         docker compose -f docker-compose.test.yml logs nginx || true
-    
+
     - name: Cleanup Docker Compose
       if: always()
       run: |
@@ -122,20 +117,20 @@ EOL
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
+
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-    
+
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
@@ -145,7 +140,7 @@ EOL
           type=ref,event=branch
           type=sha,prefix=${{ github.ref_name }}-
           type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
-    
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -155,7 +150,7 @@ EOL
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-    
+
     - name: Verify pushed image
       run: |
         docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
